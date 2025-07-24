@@ -2,16 +2,24 @@ name: Terraform Pipeline
 
 on:
   workflow_dispatch:
+    inputs:
+      destroy:
+        description: 'Destroy infrastructure'
+        required: false
+        default: 'false'
+        type: boolean
 
 env:
   AWS_REGION: us-east-1
+  TF_STATE_ARTIFACT: 'terraform-state'
+  TF_STATE_FILE: 'terraform.tfstate'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Configure AWS credentials
@@ -21,25 +29,40 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ env.AWS_REGION }}
-          mask-aws-account-id: true
 
-      - name: Verify AWS credentials
-        run: |
-          aws sts get-caller-identity
-          
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-         terraform_version: 1.12.2    
-         
-      - name: Terraform Init
-        run: terraform init
+          terraform_version: 1.12.2
 
+      - name: Download previous Terraform state
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.TF_STATE_ARTIFACT }}
+          path: .
+          if-no-files-found: ignore
+
+      - name: Terraform Init
+        run: terraform init -input=false
+        
       - name: Terraform Destroy
+        if: ${{ github.event.inputs.destroy }}
         run: terraform destroy -auto-approve
+      
 
       - name: Terraform Plan
-        run: terraform plan
+        if: ${{ !github.event.inputs.destroy }}
+        run: terraform plan -out=tfplan
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve
+        if: ${{ !github.event.inputs.destroy }}
+        run: terraform apply -auto-approve tfplan
+        
+      - name: Upload updated Terraform state
+        if: always()  # Sube el estado incluso si falla
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.TF_STATE_ARTIFACT }}
+          path: ${{ env.TF_STATE_FILE }}
+          retention-days: 3
+          if-no-files-found: error
