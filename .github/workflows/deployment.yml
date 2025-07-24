@@ -1,17 +1,19 @@
-name: Terraform Pipeline
+name: Terraform Pipeline with Forced Destroy
 
 on:
   workflow_dispatch:
 
 env:
   AWS_REGION: us-east-1
+  TF_STATE_ARTIFACT: 'terraform-state'
+  TF_STATE_FILE: 'terraform.tfstate'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Configure AWS credentials
@@ -24,22 +26,40 @@ jobs:
           mask-aws-account-id: true
 
       - name: Verify AWS credentials
-        run: |
-          aws sts get-caller-identity
-          
+        run: aws sts get-caller-identity
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-         terraform_version: 1.6.6     
-         
-      - name: Terraform Init
-        run: terraform init
+          terraform_version: 1.12.2
 
-      - name: Terraform Destroy
+      - name: Download previous Terraform state
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.TF_STATE_ARTIFACT }}
+          path: .
+          if-no-files-found: ignore
+
+      - name: Terraform Init
+        run: terraform init -input=false
+
+      - name: Destroy existing infrastructure
         run: terraform destroy -auto-approve
 
+      - name: Clean Terraform state
+        run: |
+          rm -f terraform.tfstate
+          rm -f terraform.tfstate.backup
+
       - name: Terraform Plan
-        run: terraform plan
+        run: terraform plan -out=tfplan
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve tfplan
+
+      - name: Upload new Terraform state
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.TF_STATE_ARTIFACT }}
+          path: ${{ env.TF_STATE_FILE }}
+          retention-days: 3
