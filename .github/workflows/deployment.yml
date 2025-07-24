@@ -36,24 +36,13 @@ jobs:
       - name: Terraform Destroy
         run: terraform destroy -auto-approve
 
-      - name: Clean residual state
-        run: |
-          rm -f terraform.tfstate
-          rm -f terraform.tfstate.backup
-
-      - name: Terraform Plan
-        run: terraform plan -out=tfplan
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
-
-      - name: Commit and push state file
+      - name: Commit and push new state file
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
           git remote set-url origin https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}
-          git add terraform.tfstate
-          git diff-index --quiet HEAD || git commit -m "Update terraform state [skip ci]"
+          git add terraform.tfstate terraform.tfstate.backup || true
+          git diff --cached --quiet || git commit -m "Update terraform state [skip ci]"
           git push
