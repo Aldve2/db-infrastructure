@@ -65,7 +65,7 @@ resource "aws_instance" "mongo_database" {
   ami                         = var.ec2_database_spects.ami
   instance_type               = var.ec2_database_spects.instance_type
   subnet_id                   = module.vpc_crm.public_subnet_ids[0]
-  key_name                    = data.aws_key_pair.key.key_name
+  key_name                    = crm_keys_test
   associate_public_ip_address = true
   user_data                   = file("${path.module}/scripts/init-mongo.sh")
 
@@ -82,7 +82,7 @@ resource "aws_instance" "redis_database" {
   ami                         = var.ec2_database_spects.ami
   instance_type               = var.ec2_database_spects.instance_type
   subnet_id                   = module.vpc_crm.public_subnet_ids[0]
-  key_name                    = data.aws_key_pair.key.key_name
+  key_name                    = crm_keys_test
   associate_public_ip_address = true
   user_data                   = file("${path.module}/scripts/init-redis.sh")
 
@@ -99,7 +99,7 @@ resource "aws_instance" "neo4j_database" {
   ami                         = var.ec2_database_spects.ami
   instance_type               = var.ec2_database_spects.instance_type
   subnet_id                   = module.vpc_crm.public_subnet_ids[0]
-  key_name                    = data.aws_key_pair.key.key_name
+  key_name                    = crm_keys_test
   associate_public_ip_address = true
   user_data                   = file("${path.module}/scripts/init-neo4j.sh")
 
