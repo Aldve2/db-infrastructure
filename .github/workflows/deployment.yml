@@ -49,6 +49,8 @@ jobs:
 
       - name: Commit and push state file
         run: |
+          git config --global user.email "jakile971012@outlook.com"
+          git config --global user.name "Aldve2"
           git add terraform.tfstate
           git diff-index --quiet HEAD || git commit -m "Update terraform state [skip ci]"
           git push
