@@ -9,6 +9,10 @@ terraform {
   } 
 }
 
+provider "aws" {
+  region = us-east-1
+}
+
 module "vpc_crm" {
   source          = "./modules/vpc"
   vpc_cidr        = var.vpc_cidr
