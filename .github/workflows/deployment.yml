@@ -32,10 +32,10 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.12.0
+          terraform_version: 1.12.2
 
       - name: Terraform Init
-        run: terraform init -ignore-remote-version
+        run: terraform init
 
       - name: Terraform Destroy
         run: terraform destroy -auto-approve || echo "Nothing to destroy"
