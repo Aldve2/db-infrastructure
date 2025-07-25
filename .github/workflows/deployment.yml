@@ -40,8 +40,6 @@ jobs:
 
       - name: Terraform Init
         run: terraform init -input=false
-        env:
-          TF_CLOUD_TOKEN: ${{ secrets.TF_CLOUD_TOKEN }}
 
       - name: Terraform Validate
         run: terraform validate
