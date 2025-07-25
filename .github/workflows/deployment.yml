@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository (including state file)
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -23,7 +23,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ env.AWS_REGION }}
-          mask-aws-account-id: true
 
       - name: Authenticate with Terraform Cloud
         run: echo "credentials \"app.terraform.io\" { token = \"${TF_CLOUD_TOKEN}\" }" > ~/.terraformrc
@@ -37,3 +36,12 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
+
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve || echo "Nothing to destroy"
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
