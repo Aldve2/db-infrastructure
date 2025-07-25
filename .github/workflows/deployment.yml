@@ -35,7 +35,7 @@ jobs:
           terraform_version: 1.12.2
 
       - name: Terraform Init
-        run: yes "yes" | head -n 2 | terraform init
+        run: terraform init
 
       - name: Terraform Destroy
         run: terraform destroy -auto-approve || echo "Nothing to destroy"
