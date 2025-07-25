@@ -5,16 +5,16 @@ on:
 
 env:
   AWS_REGION: us-east-1
+  TF_CLI_ARGS: "-no-color -compact-warnings -input=false"
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    environment: production
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -24,24 +24,29 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Authenticate with Terraform Cloud
-        run: echo "credentials \"app.terraform.io\" { token = \"${TF_CLOUD_TOKEN}\" }" > ~/.terraformrc
-        env:
-          TF_CLOUD_TOKEN: ${{ secrets.TF_CLOUD_TOKEN }}
-
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.12.0
 
       - name: Terraform Init
-        run: terraform init -ignore-remote-version
-
-      - name: Terraform Destroy
-        run: terraform destroy -auto-approve || echo "Nothing to destroy"
+        run: terraform init -reconfigure
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
 
       - name: Terraform Plan
         run: terraform plan -out=tfplan
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
