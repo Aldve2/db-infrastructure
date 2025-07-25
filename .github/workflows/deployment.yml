@@ -25,6 +25,11 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           mask-aws-account-id: true
 
+      - name: Authenticate with Terraform Cloud
+        run: echo "credentials \"app.terraform.io\" { token = \"${TF_CLOUD_TOKEN}\" }" > ~/.terraformrc
+        env:
+          TF_CLOUD_TOKEN: ${{ secrets.TF_CLOUD_TOKEN }}
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -32,17 +37,3 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
-
-      - name: Terraform Destroy
-        run: terraform destroy -auto-approve
-
-      - name: Commit and push new state file
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
-        run: |
-          git config --global user.email "jakile971012@outlook.com"
-          git config --global user.name "Aldve2"
-          git remote set-url origin https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}
-          git add terraform.tfstate terraform.tfstate.backup || true
-          git diff --cached --quiet || git commit -m "Update terraform state [skip ci]"
-          git push
