@@ -6,19 +6,17 @@ on:
 env:
   AWS_REGION: us-east-1
   TF_CLI_ARGS: "-no-color -compact-warnings -input=false"
-  TF_CLI_ARGS_plan: "-out=tfplan"
-  TF_CLI_ARGS_apply: "-auto-approve"
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: production  # Recomendado para mejor trazabilidad
+    environment: production
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Necesario para algunos módulos de Terraform
+          fetch-depth: 0
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -31,17 +29,17 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_wrapper: false  # Evita conflictos con Terraform Cloud
+          terraform_wrapper: false
 
-      - name: Setup Terraform Cloud credentials
+      - name: Authenticate with Terraform Cloud
         run: |
           mkdir -p ~/.terraform.d
-          echo "{\"credentials\":{\"app.terraform.io\":{\"token\":\"$TF_CLOUD_TOKEN\"}}}" > ~/.terraform.d/credentials.tfrc.json
+          echo '{"credentials":{"app.terraform.io":{"token":"$TF_CLOUD_TOKEN"}}}' > ~/.terraform.d/credentials.tfrc.json
         env:
           TF_CLOUD_TOKEN: ${{ secrets.TF_CLOUD_TOKEN }}
 
       - name: Terraform Init
-        run: terraform init -input=false -reconfigure
+        run: terraform init -input=false
         env:
           TF_CLOUD_TOKEN: ${{ secrets.TF_CLOUD_TOKEN }}
 
@@ -49,11 +47,7 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
-        run: terraform plan
-        env:
-          TF_CLOUD_TOKEN: ${{ secrets.TF_CLOUD_TOKEN }}
+        run: terraform plan -out=tfplan
 
       - name: Terraform Apply
-        run: terraform apply
-        env:
-          TF_CLOUD_TOKEN: ${{ secrets.TF_CLOUD_TOKEN }}
+        run: terraform apply -auto-approve tfplan
