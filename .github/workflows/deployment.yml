@@ -1,12 +1,10 @@
-name: Terraform Pipeline with Forced Destroy
+name: Terraform Pipeline
 
 on:
   workflow_dispatch:
 
 env:
   AWS_REGION: us-east-1
-  TF_STATE_ARTIFACT: 'terraform-state'
-  TF_STATE_FILE: 'terraform.tfstate'
 
 jobs:
   deploy:
@@ -14,52 +12,36 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ env.AWS_REGION }}
-          mask-aws-account-id: true
 
-      - name: Verify AWS credentials
-        run: aws sts get-caller-identity
+      - name: Authenticate with Terraform Cloud
+        run: echo "credentials \"app.terraform.io\" { token = \"${TF_CLOUD_TOKEN}\" }" > ~/.terraformrc
+        env:
+          TF_CLOUD_TOKEN: ${{ secrets.TF_CLOUD_TOKEN }}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.12.2
 
-      - name: Download previous Terraform state
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ env.TF_STATE_ARTIFACT }}
-          path: .
-          if-no-files-found: ignore
-
       - name: Terraform Init
-        run: terraform init -input=false
+        run: terraform init
 
-      - name: Destroy existing infrastructure
-        run: terraform destroy -auto-approve
-
-      - name: Clean Terraform state
-        run: |
-          rm -f terraform.tfstate
-          rm -f terraform.tfstate.backup
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve || echo "Nothing to destroy"
 
       - name: Terraform Plan
         run: terraform plan -out=tfplan
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
-
-      - name: Upload new Terraform state
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ env.TF_STATE_ARTIFACT }}
-          path: ${{ env.TF_STATE_FILE }}
-          retention-days: 3
