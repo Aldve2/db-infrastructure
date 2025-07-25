@@ -1,11 +1,12 @@
-terraform {
-  backend "remote" {
-    organization = "crm-project"
+terraform { 
+  cloud { 
+    
+    organization = "crm-project" 
 
-    workspaces {
-      name = "db-infrastructure"
-    }
-  }
+    workspaces { 
+      name = "db-infrastructure" 
+    } 
+  } 
 }
 
 module "vpc_crm" {
