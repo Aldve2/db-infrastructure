@@ -1,3 +1,13 @@
+terraform {
+  backend "remote" {
+    organization = "crm-project"
+
+    workspaces {
+      name = "db-infrastructure"
+    }
+  }
+}
+
 module "vpc_crm" {
   source          = "./modules/vpc"
   vpc_cidr        = var.vpc_cidr
