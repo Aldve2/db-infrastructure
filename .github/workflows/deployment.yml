@@ -6,14 +6,19 @@ on:
 env:
   AWS_REGION: us-east-1
   TF_CLI_ARGS: "-no-color -compact-warnings -input=false"
+  TF_CLI_ARGS_plan: "-out=tfplan"
+  TF_CLI_ARGS_apply: "-auto-approve"
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: production  # Recomendado para mejor trazabilidad
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Necesario para algunos módulos de Terraform
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -25,32 +30,30 @@ jobs:
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
-        
-      - name: Authenticate with Terraform Cloud
-        run: echo "credentials \"app.terraform.io\" { token = \"${TF_CLOUD_TOKEN}\" }" > ~/.terraformrc
+        with:
+          terraform_wrapper: false  # Evita conflictos con Terraform Cloud
+
+      - name: Setup Terraform Cloud credentials
+        run: |
+          mkdir -p ~/.terraform.d
+          echo "{\"credentials\":{\"app.terraform.io\":{\"token\":\"$TF_CLOUD_TOKEN\"}}}" > ~/.terraform.d/credentials.tfrc.json
         env:
           TF_CLOUD_TOKEN: ${{ secrets.TF_CLOUD_TOKEN }}
-          
+
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -input=false -reconfigure
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
+          TF_CLOUD_TOKEN: ${{ secrets.TF_CLOUD_TOKEN }}
+
+      - name: Terraform Validate
+        run: terraform validate
 
       - name: Terraform Plan
         run: terraform plan
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
+          TF_CLOUD_TOKEN: ${{ secrets.TF_CLOUD_TOKEN }}
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve
+        run: terraform apply
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
+          TF_CLOUD_TOKEN: ${{ secrets.TF_CLOUD_TOKEN }}
